@@ -1,0 +1,16 @@
+.env
+.next/
+node_modules/
+__pycache__/
+.pytest_cache/
+.venv/
+*.py[cod]
+frontend/coverage/
+backend/htmlcov/
+backend/.coverage
+backend/build/
+backend/*.egg-info/
+backend/alembic/versions/*
+!backend/alembic/versions/.gitkeep
+!backend/alembic/versions/*.py
+infra/postgres/data/

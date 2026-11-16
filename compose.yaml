@@ -1,0 +1,120 @@
+name: medigest
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-medigest}
+      POSTGRES_USER: ${POSTGRES_USER:-medigest}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-medigest_dev_only}
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:-medigest_app_dev_only}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.2
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-medigest_admin_dev_only}
+      KC_HEALTH_ENABLED: "true"
+      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:-http://localhost:8080}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+    ports:
+      - "8080:8080"
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+      - ./infra/keycloak/realm:/opt/keycloak/data/import:ro
+    depends_on:
+      mailpit:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  mailpit:
+    image: axllent/mailpit:v1.26.0
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://medigest_app:medigest_app_dev_only@db:5432/medigest}
+      MIGRATION_DATABASE_URL: ${MIGRATION_DATABASE_URL:-postgresql+psycopg://medigest:medigest_dev_only@db:5432/medigest}
+      TENANT_CONTEXT_SECRET: ${TENANT_CONTEXT_SECRET:-medigest-local-only-tenant-context-secret-change-me}
+      PATIENT_DATA_ENCRYPTION_KEY: ${PATIENT_DATA_ENCRYPTION_KEY:-MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=}
+      PATIENT_IDENTIFIER_HMAC_SECRET: ${PATIENT_IDENTIFIER_HMAC_SECRET:-medigest-local-only-patient-identifier-hmac-secret}
+      ADMINISTRATIVE_DOCUMENT_ENCRYPTION_KEY: ${ADMINISTRATIVE_DOCUMENT_ENCRYPTION_KEY:-MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=}
+      OIDC_ISSUER: ${KEYCLOAK_ISSUER:-http://localhost:8080/realms/medigest}
+      OIDC_AUDIENCE: ${OIDC_AUDIENCE:-medigest-api}
+      OIDC_JWKS_URL: ${OIDC_JWKS_URL:-http://keycloak:8080/realms/medigest/protocol/openid-connect/certs}
+      KEYCLOAK_ADMIN_BASE_URL: ${KEYCLOAK_ADMIN_BASE_URL:-http://keycloak:8080}
+      KEYCLOAK_ADMIN_REALM: ${KEYCLOAK_ADMIN_REALM:-medigest}
+      KEYCLOAK_ADMIN_CLIENT_ID: ${KEYCLOAK_ADMIN_CLIENT_ID:-medigest-admin-api}
+      KEYCLOAK_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET:-medigest-local-only-admin-client-secret}
+      APP_ENV: ${APP_ENV:-development}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3)"
+      interval: 5s
+      timeout: 4s
+      retries: 10
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      BACKEND_URL: ${BACKEND_URL:-http://backend:8000}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-medigest-local-only-nextauth-secret-change-me}
+      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER:-http://localhost:8080/realms/medigest}
+      KEYCLOAK_INTERNAL_ISSUER: ${KEYCLOAK_INTERNAL_ISSUER:-http://keycloak:8080/realms/medigest}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-medigest-web}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-medigest-dev-client-secret}
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+volumes:
+  postgres_data:
+  keycloak_data:

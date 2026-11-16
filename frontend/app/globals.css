@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --background: 210 33% 98%;
+  --foreground: 215 31% 17%;
+  --primary: 171 72% 27%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 174 37% 94%;
+  --secondary-foreground: 171 72% 22%;
+  --muted: 210 24% 95%;
+  --muted-foreground: 215 16% 46%;
+  --accent: 174 37% 94%;
+  --accent-foreground: 171 72% 22%;
+  --destructive: 0 72% 51%;
+  --border: 214 26% 88%;
+  --input: 214 26% 84%;
+  --ring: 171 72% 38%;
+  --radius: 0.875rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: Arial, Helvetica, sans-serif;
+  font-feature-settings: "ss01" on;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+::selection {
+  background: hsl(var(--primary) / 0.16);
+}
+
+:focus-visible {
+  outline: 3px solid hsl(var(--ring) / 0.5);
+  outline-offset: 2px;
+}

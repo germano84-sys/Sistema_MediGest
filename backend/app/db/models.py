@@ -1,0 +1,66 @@
+from app.domains.clinical.models import (
+    AuditEvent,
+    ClinicalRecord,
+    Diagnosis,
+    Doctor,
+    DoctorAvailability,
+    DoctorSpecialty,
+    Encounter,
+    MedicalOrder,
+    Prescription,
+    Specialty,
+)
+from app.domains.identity.models import Membership, Permission, Role, User
+from app.domains.patients.models import (
+    AdministrativeDocument,
+    AdministrativeFile,
+    Patient,
+    PatientEmergencyContact,
+    PatientIdentifier,
+)
+from app.domains.scheduling.models import (
+    Appointment,
+    AppointmentHistory,
+    Service,
+    SiteHoliday,
+)
+from app.domains.tenants.models import (
+    ClinicRoom,
+    Site,
+    SiteHours,
+    Tenant,
+    TenantSetting,
+    TenantSpecialty,
+)
+
+__all__ = [
+    "Appointment",
+    "AppointmentHistory",
+    "AdministrativeDocument",
+    "AdministrativeFile",
+    "AuditEvent",
+    "ClinicalRecord",
+    "ClinicRoom",
+    "Diagnosis",
+    "Doctor",
+    "DoctorAvailability",
+    "DoctorSpecialty",
+    "Encounter",
+    "MedicalOrder",
+    "Membership",
+    "Patient",
+    "PatientEmergencyContact",
+    "PatientIdentifier",
+    "Permission",
+    "Prescription",
+    "Role",
+    "Service",
+    "SiteHoliday",
+    "Site",
+    "SiteHours",
+    "Specialty",
+    "Tenant",
+    "TenantSetting",
+    "TenantSpecialty",
+    "User",
+]
